@@ -21,7 +21,7 @@ class AI:
 
     def evaluate(self):
         # center squares = more control
-        center = [4, 5]
+        center = [3, 4]
         material_score = 0
         control_score = 0
 

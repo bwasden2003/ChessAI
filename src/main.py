@@ -45,7 +45,7 @@ class Main:
                         piece = board.squares[clicked_row][clicked_col].piece
                         if piece.color == game.next_player:
                             board.possible_moves(
-                                piece, clicked_row, clicked_col)
+                                piece, clicked_row, clicked_col, bool=True)
                             dragger.save_initial(event.pos)
                             dragger.drag_piece(piece)
 
@@ -89,7 +89,7 @@ class Main:
                             )
 
                             board.move(dragger.piece, move)
-
+                            board.set_true_en_passant(dragger.piece)
                             # play sound
                             game.sound_effect(captured)
 
