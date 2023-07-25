@@ -15,6 +15,8 @@ class Game:
         self.board = Board()
         self.dragger = Dragger()
         self.config = Config()
+        self.white_pieces = {}
+        self.black_pieces = {}
 
     def show_bg(self, surface):
         theme = self.config.theme
