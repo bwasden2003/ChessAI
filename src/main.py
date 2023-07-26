@@ -95,6 +95,7 @@ class Main:
 
                             game.show_bg(screen)
                             game.show_pieces(screen)
+                            game.check_checkmate()
 
                             game.next_turn()
 

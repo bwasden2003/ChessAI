@@ -11,8 +11,6 @@ class Board:
     def __init__(self):
         self.squares = [[0, 0, 0, 0, 0, 0, 0, 0] for col in range(COLS)]
         self.last_move = None
-        self.white_pieces = []
-        self.black_pieces = []
         self._create()
         self._add_pieces('white')
         self._add_pieces('black')
@@ -92,6 +90,32 @@ class Board:
                             return True
         return False
 
+    def checkmate(self, color):
+        for row in range(ROWS):
+            for col in range(COLS):
+                if self.squares[row][col].piece is not None and self.squares[row][col].piece.color != color:
+                    self.possible_moves(self.squares[row][col].piece, row, col)
+                    if len(self.squares[row][col].piece.moves) > 0:
+                        self.squares[row][col].piece.clear_moves()
+                        return False
+                    else:
+                        self.squares[row][col].piece.clear_moves()
+        return True
+
+    # returns number of pieces that are attacking piece
+    def attackers(self, piece):
+        res = 0
+        for r in range(ROWS):
+            for c in range(COLS):
+                if self.squares[r][c].has_piece():
+                    p = self.squares[r][c]
+                    self.possible_moves(p, r, c)
+                    for move in p.moves:
+                        if move.final.piece == piece:
+                            res += 1
+                    p.clear_moves()
+        return res
+
     def possible_moves(self, piece, row, col, bool=True):
 
         def pawn_moves():
@@ -142,7 +166,7 @@ class Board:
             if Square.in_range(col - 1) and row == r:
                 if self.squares[row][col - 1].has_enemy_piece(piece.color):
                     final_piece = self.squares[row][col - 1].piece
-                    if isinstance(piece, Pawn):
+                    if isinstance(piece, Pawn) and isinstance(final_piece, Pawn):
                         if final_piece.en_passant:
                             initial = Square(row, col)
                             final = Square(fr, col - 1, final_piece)
@@ -158,7 +182,7 @@ class Board:
             if Square.in_range(col + 1) and row == r:
                 if self.squares[row][col + 1].has_enemy_piece(piece.color):
                     final_piece = self.squares[row][col + 1].piece
-                    if isinstance(piece, Pawn):
+                    if isinstance(piece, Pawn) and isinstance(final_piece, Pawn):
                         if final_piece.en_passant:
                             initial = Square(row, col)
                             final = Square(fr, col + 1, final_piece)
@@ -198,8 +222,6 @@ class Board:
                         if bool:
                             if not self.in_check(piece, move):
                                 piece.add_move(move)
-                            else:
-                                break
                         else:
                             piece.add_move(move)
 
@@ -219,6 +241,8 @@ class Board:
 
                         if not self.squares[possible_move_row][possible_move_col].has_piece():
                             # check for pottential checks
+                            print(
+                                f"--------------NO PIECE DETECTED AT: {possible_move_row}, {possible_move_col}")
                             if bool:
                                 if not self.in_check(piece, move):
                                     piece.add_move(move)
@@ -233,16 +257,21 @@ class Board:
                             else:
                                 piece.add_move(move)
                             # break after first enemy piece found (can't go through piece)
+                            print(
+                                f'enemy piece at {possible_move_row}, {possible_move_col}')
                             break
 
                         elif self.squares[possible_move_row][possible_move_col].has_team_piece(piece.color):
                             # break when team piece found (can't go through piece)
+                            print(
+                                f'team piece at {possible_move_row}, {possible_move_col}')
                             break
 
                     else:
                         break
                     possible_move_row += row_dir
                     possible_move_col += col_dir
+            print(" _______________________________ ")
 
         def king_moves():
             possible_moves = [
@@ -269,8 +298,6 @@ class Board:
                         if bool:
                             if not self.in_check(piece, move):
                                 piece.add_move(move)
-                            else:
-                                break
                         else:
                             piece.add_move(move)
 
@@ -371,10 +398,6 @@ class Board:
         for col in range(COLS):
             pawn = Pawn(color)
             self.squares[row_pawn][col] = Square(row_pawn, col, pawn)
-            if color == 'white':
-                self.white_pieces.append(pawn)
-            else:
-                self.black_pieces.append(pawn)
 
         # rooks
         rook1 = Rook(color)
@@ -403,23 +426,3 @@ class Board:
         self.squares[row_other][4] = Square(row_other, 4, king)
         king.left_rook = rook1
         king.right_rook = rook2
-
-        # append pieces to piece list
-        if color == 'white':
-            self.white_pieces.append(rook1)
-            self.white_pieces.append(rook2)
-            self.white_pieces.append(knight1)
-            self.white_pieces.append(knight2)
-            self.white_pieces.append(bishop1)
-            self.white_pieces.append(bishop2)
-            self.white_pieces.append(queen)
-            self.white_pieces.append(king)
-        else:
-            self.black_pieces.append(rook1)
-            self.black_pieces.append(rook2)
-            self.black_pieces.append(knight1)
-            self.black_pieces.append(knight2)
-            self.black_pieces.append(bishop1)
-            self.black_pieces.append(bishop2)
-            self.black_pieces.append(queen)
-            self.black_pieces.append(king)

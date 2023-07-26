@@ -22,7 +22,7 @@ class Square:
         return self.has_piece() and self.piece.color != color
 
     def isempty_or_enemy(self, color):
-        return not self.has_piece() or self.has_enemy_piece(color)
+        return not self.has_piece() or not self.has_team_piece(color)
 
     @staticmethod
     def in_range(*args):

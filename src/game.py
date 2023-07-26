@@ -15,8 +15,6 @@ class Game:
         self.board = Board()
         self.dragger = Dragger()
         self.config = Config()
-        self.white_pieces = {}
-        self.black_pieces = {}
 
     def show_bg(self, surface):
         theme = self.config.theme
@@ -104,6 +102,9 @@ class Game:
 
     def next_turn(self):
         self.next_player = 'white' if self.next_player == 'black' else 'black'
+
+    def check_checkmate(self):
+        self.board.checkmate(self.next_player)
 
     def change_theme(self):
         self.config.change_theme()
