@@ -11,6 +11,7 @@ class Board:
     def __init__(self):
         self.squares = [[0, 0, 0, 0, 0, 0, 0, 0] for col in range(COLS)]
         self.last_move = None
+        self.history = []
         self._create()
         self._add_pieces('white')
         self._add_pieces('black')
@@ -21,6 +22,7 @@ class Board:
 
         en_passant_empty = not self.squares[final.row][final.col].has_piece()
 
+        move.captured_piece = self.squares[final.row][final.col].piece
         self.squares[initial.row][initial.col].piece = None
         self.squares[final.row][final.col].piece = piece
 
@@ -28,8 +30,10 @@ class Board:
 
             diff = final.col - initial.col
             if diff != 0 and en_passant_empty:
+                move.captured_piece = self.squares[initial.row][initial.col + diff].piece
                 self.squares[initial.row][initial.col + diff].piece = None
                 self.squares[final.row][final.col].piece = piece
+                move.was_enpassant = True
                 if not testing:
                     sound = Sound(os.path.join('assets/sounds/capture.wav'))
                     sound.play()
@@ -37,22 +41,59 @@ class Board:
             else:
                 # pawn promotion
                 self.check_promotion(piece, final)
+                if final.row == 7 or final.row == 0:
+                    move.was_promotion = True
 
         if isinstance(piece, King):
             if self.castling(initial, final) and not testing:
-                diff = final.col - initial.col
-                rook = piece.left_rook if (diff < 0) else piece.right_rook
-                self.move(rook, rook.moves[-1])
+                move.was_castle = True
+                if move.final.col > move.initial.col:  # King-side castle
+                    rook = self.squares[move.initial.row][move.initial.col + 3].piece
+                    self.squares[move.initial.row][move.initial.col + 3].piece = None
+                else:  # Queen-side castle
+                    rook = self.squares[move.initial.row][move.initial.col - 4].piece
+                    self.squares[move.initial.row][move.initial.col - 4].piece = None
+
+                # Move the rook to the other side of the king
+                self.squares[move.final.row][move.final.col - 1 if rook == piece.left_rook else move.final.col + 1].piece = rook
 
         # marked as moved
+        move.original_move_status = piece.moved
         piece.moved = True
 
-        # clear valid moves
-        piece.clear_moves()
-
         # update last move
+        self.history.append((piece, move))
         self.last_move = move
+    
+    def undo_move(self, piece, move):
+        initial = move.initial
+        final = move.final
 
+        self.squares[initial.row][initial.col].piece = piece
+        self.squares[final.row][final.col].piece = move.captured_piece
+
+        if move.was_enpassant:
+            diff = final.col - initial.col
+            self.squares[initial.row][initial.col + diff].piece = move.captured_piece
+            self.squares[final.row][final.col].piece = None
+            piece.en_passant = False
+
+        if move.was_promotion and (final.row == 0 or final.row == 7):
+            self.squares[initial.row][initial.col].piece = Pawn(piece.color)
+
+        if move.was_castle and abs(move.initial.col - move.final.col) == 2:
+            if move.final.col > move.initial.col:  # King-side castle
+                rook = self.squares[move.final.row][move.final.col + 1].piece
+                self.squares[move.final.row][move.final.col + 1].piece = None
+            else:  # Queen-side castle
+                rook = self.squares[move.final.row][move.final.col - 2].piece
+                self.squares[move.final.row][move.final.col - 2].piece = None
+
+            self.squares[move.final.row][move.initial.col - 1 if rook == piece.left_rook else move.initial.col + 1].piece = rook
+            rook.moved = False
+        
+        piece.moved = move.original_move_status
+    
     def valid_move(self, piece, move):
         return move in piece.moves
 
@@ -76,18 +117,29 @@ class Board:
         piece.en_passant = True
 
     def in_check(self, piece, move):
-        temp_piece = copy.deepcopy(piece)
-        temp_board = copy.deepcopy(self)
-        temp_board.move(temp_piece, move, testing=True)
+        self.move(piece, move, testing=True)
+        king_square = None
+        for row in range(ROWS):
+            for col in range(COLS):
+                if self.squares[row][col].has_piece():
+                    p = self.squares[row][col].piece
+                    if isinstance(p, King) and p.color == piece.color:
+                        king_square = (row, col)
+                        break
+            if king_square is not None:
+                break
 
         for row in range(ROWS):
             for col in range(COLS):
-                if temp_board.squares[row][col].has_enemy_piece(piece.color):
-                    p = temp_board.squares[row][col].piece
-                    temp_board.possible_moves(p, row, col, bool=False)
+                if self.squares[row][col].has_enemy_piece(piece.color):
+                    p = self.squares[row][col].piece
+                    self.possible_moves(p, row, col, False)
                     for m in p.moves:
-                        if isinstance(m.final.piece, King):
+                        if (m.final.row, m.final.col) == king_square:
+                            self.undo_move(piece, move)
                             return True
+
+        self.undo_move(piece, move)
         return False
 
     def checkmate(self, color):
@@ -108,7 +160,7 @@ class Board:
         for r in range(ROWS):
             for c in range(COLS):
                 if self.squares[r][c].has_piece():
-                    p = self.squares[r][c]
+                    p = self.squares[r][c].piece
                     self.possible_moves(p, r, c)
                     for move in p.moves:
                         if move.final.piece == piece:
@@ -117,7 +169,7 @@ class Board:
         return res
 
     def possible_moves(self, piece, row, col, bool=True):
-
+        piece.clear_moves()
         def pawn_moves():
             steps = 1 if piece.moved else 2
 
@@ -241,8 +293,6 @@ class Board:
 
                         if not self.squares[possible_move_row][possible_move_col].has_piece():
                             # check for pottential checks
-                            print(
-                                f"--------------NO PIECE DETECTED AT: {possible_move_row}, {possible_move_col}")
                             if bool:
                                 if not self.in_check(piece, move):
                                     piece.add_move(move)
@@ -257,21 +307,16 @@ class Board:
                             else:
                                 piece.add_move(move)
                             # break after first enemy piece found (can't go through piece)
-                            print(
-                                f'enemy piece at {possible_move_row}, {possible_move_col}')
                             break
 
                         elif self.squares[possible_move_row][possible_move_col].has_team_piece(piece.color):
                             # break when team piece found (can't go through piece)
-                            print(
-                                f'team piece at {possible_move_row}, {possible_move_col}')
                             break
 
                     else:
                         break
                     possible_move_row += row_dir
                     possible_move_col += col_dir
-            print(" _______________________________ ")
 
         def king_moves():
             possible_moves = [

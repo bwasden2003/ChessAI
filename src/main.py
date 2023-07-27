@@ -5,7 +5,8 @@ from const import *
 from game import Game
 from square import Square
 from move import Move
-
+from ai import AI
+import copy
 
 class Main:
 
@@ -14,6 +15,7 @@ class Main:
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption('Chess')
         self.game = Game()
+        self.ai = AI(self.game)
 
     def mainloop(self):
 
@@ -29,93 +31,112 @@ class Main:
             game.show_pieces(screen)
             game.show_hover(screen)
 
-            if dragger.dragging:
-                dragger.update_blit(screen)
+            if game.next_player == 'black':
+                temp_board = copy.deepcopy(board)
+                move, eval = self.ai.alpha_beta_search(temp_board, float('-inf'), float('inf'), 2, True)
+                piece = board.squares[move.initial.row][move.initial.col].piece
+                board.possible_moves(piece, move.initial.row, move.initial.col)
+                if board.valid_move(piece, move):
+                    captured = board.squares[move.final.row][move.final.col].has_piece()
+                    board.move(piece, move)
+                    board.set_true_en_passant(piece)
+                    # play sound
+                    game.sound_effect(captured)
 
-            for event in pygame.event.get():
+                    game.show_bg(screen)
+                    game.show_pieces(screen)
+                    game.check_checkmate()
 
-                # click
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    dragger.update_mouse(event.pos)
+                    game.next_turn()
+                    continue
+            else:
+                if dragger.dragging:
+                    dragger.update_blit(screen)
 
-                    clicked_row = dragger.mouseY // SQUARE_SIZE
-                    clicked_col = dragger.mouseX // SQUARE_SIZE
+                for event in pygame.event.get():
 
-                    if board.squares[clicked_row][clicked_col].has_piece():
-                        piece = board.squares[clicked_row][clicked_col].piece
-                        if piece.color == game.next_player:
-                            board.possible_moves(
-                                piece, clicked_row, clicked_col, bool=True)
-                            dragger.save_initial(event.pos)
-                            dragger.drag_piece(piece)
+                    # click
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        dragger.update_mouse(event.pos)
+
+                        clicked_row = dragger.mouseY // SQUARE_SIZE
+                        clicked_col = dragger.mouseX // SQUARE_SIZE
+
+                        if board.squares[clicked_row][clicked_col].has_piece():
+                            piece = board.squares[clicked_row][clicked_col].piece
+                            if piece.color == game.next_player:
+                                board.possible_moves(
+                                    piece, clicked_row, clicked_col, bool=True)
+                                dragger.save_initial(event.pos)
+                                dragger.drag_piece(piece)
+
+                                game.show_bg(screen)
+                                game.show_moves(screen)
+                                game.show_pieces(screen)
+
+                    # mouse motion
+                    elif event.type == pygame.MOUSEMOTION:
+                        hovered_row = event.pos[1] // SQUARE_SIZE
+                        hovered_col = event.pos[0] // SQUARE_SIZE
+
+                        game.set_hover(hovered_row, hovered_col)
+
+                        if dragger.dragging:
+                            dragger.update_mouse(event.pos)
 
                             game.show_bg(screen)
+                            game.show_last_move(screen)
                             game.show_moves(screen)
                             game.show_pieces(screen)
+                            game.show_hover(screen)
 
-                # mouse motion
-                elif event.type == pygame.MOUSEMOTION:
-                    hovered_row = event.pos[1] // SQUARE_SIZE
-                    hovered_col = event.pos[0] // SQUARE_SIZE
+                            dragger.update_blit(screen)
 
-                    game.set_hover(hovered_row, hovered_col)
+                    # click release
+                    elif event.type == pygame.MOUSEBUTTONUP:
 
-                    if dragger.dragging:
-                        dragger.update_mouse(event.pos)
+                        if dragger.dragging:
+                            dragger.update_mouse(event.pos)
+                            new_row = dragger.mouseY // SQUARE_SIZE
+                            new_col = dragger.mouseX // SQUARE_SIZE
 
-                        game.show_bg(screen)
-                        game.show_last_move(screen)
-                        game.show_moves(screen)
-                        game.show_pieces(screen)
-                        game.show_hover(screen)
+                            initial = Square(dragger.initial_row,
+                                            dragger.initial_col)
+                            final = Square(new_row, new_col)
+                            move = Move(initial, final)
 
-                        dragger.update_blit(screen)
+                            if board.valid_move(dragger.piece, move):
+                                captured = board.squares[new_row][new_col].has_piece(
+                                )
 
-                # click release
-                elif event.type == pygame.MOUSEBUTTONUP:
+                                board.move(dragger.piece, move)
+                                board.set_true_en_passant(dragger.piece)
+                                # play sound
+                                game.sound_effect(captured)
 
-                    if dragger.dragging:
-                        dragger.update_mouse(event.pos)
-                        new_row = dragger.mouseY // SQUARE_SIZE
-                        new_col = dragger.mouseX // SQUARE_SIZE
+                                game.show_bg(screen)
+                                game.show_pieces(screen)
+                                game.check_checkmate()
 
-                        initial = Square(dragger.initial_row,
-                                         dragger.initial_col)
-                        final = Square(new_row, new_col)
-                        move = Move(initial, final)
+                                game.next_turn()
 
-                        if board.valid_move(dragger.piece, move):
-                            captured = board.squares[new_row][new_col].has_piece(
-                            )
+                        dragger.undrag_piece()
 
-                            board.move(dragger.piece, move)
-                            board.set_true_en_passant(dragger.piece)
-                            # play sound
-                            game.sound_effect(captured)
+                    # key press
+                    elif event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_t:
+                            game.change_theme()
 
-                            game.show_bg(screen)
-                            game.show_pieces(screen)
-                            game.check_checkmate()
+                        elif event.key == pygame.K_r:
+                            game.reset()
+                            game = self.game
+                            board = self.game.board
+                            dragger = self.game.dragger
 
-                            game.next_turn()
-
-                    dragger.undrag_piece()
-
-                # key press
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_t:
-                        game.change_theme()
-
-                    elif event.key == pygame.K_r:
-                        game.reset()
-                        game = self.game
-                        board = self.game.board
-                        dragger = self.game.dragger
-
-                # quit app
-                elif event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+                    # quit app
+                    elif event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
 
             pygame.display.update()
 

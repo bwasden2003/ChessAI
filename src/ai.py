@@ -4,29 +4,68 @@ from board import Board
 from game import Game
 from piece import *
 from square import Square
-
+import copy
 
 class AI:
 
     def __init__(self, game):
         self.game = game
 
-    def iterative_deepening(board, depth_limit):
-        best_move = None
-        pass
+    def alpha_beta_search(self, board, alpha, beta, depth, maximize):
+        if depth == 0: #or gameover
+            return None, self.evaluate(board)
+        print(f"depth = {depth}")
+        if maximize:
+            best_value = float('-inf')
+            best_move = None
+            for row in range(ROWS):
+                for col in range(COLS):
+                    if board.squares[row][col].has_piece():
+                        piece = board.squares[row][col].piece
+                        if piece.color == 'black':
+                            board.possible_moves(piece, row, col)
+                            for move in piece.moves:
+                                board.move(piece, move, testing=True)
+                                _, eval = self.alpha_beta_search(board, alpha, beta, depth - 1, False)
+                                board.undo_move(piece, move)
+                                if eval > best_value:
+                                    best_value = eval
+                                    best_move = move
+                                alpha = max(alpha, eval)
+                                if beta <= alpha:
+                                    return best_move, best_value
+            return best_move, best_value
+        else:
+            worst_value = float('inf')
+            worst_move = None
+            for row in range(ROWS):
+                for col in range(COLS):
+                    if board.squares[row][col].has_piece():
+                        piece = board.squares[row][col].piece
+                        if piece.color == 'white':
+                            board.possible_moves(piece, row, col)
+                            for move in piece.moves:
+                                board.move(piece, move, testing=True)
+                                _, eval = self.alpha_beta_search(board, alpha, beta, depth - 1, True)
+                                board.undo_move(piece, move)
+                                if eval < worst_value:
+                                    worst_value = eval
+                                    worst_move = move
+                                beta = min(beta, eval)
+                                if beta <= alpha:
+                                    return worst_move, worst_value
+            return worst_move, worst_value
 
-    def alpha_beta_search(board, depth_limit):
-        best_value = float('-inf')
-        alpha, beta = float('-inf'), float('inf')
-        best_move = None
-        # loop through legal moves
 
-    def evaluate(self):
+
+
+    def evaluate(self, board):
         # center squares = more control
         center = [3, 4]
         material_score = 0
         control_score = 0
         mobility_score = 0
+        safety_score = 0
         structure_score = 0
 
         white_pawn_files = [0] * 8
@@ -35,11 +74,11 @@ class AI:
         # incorporate way to get piece scores for white and black
         for row in range(ROWS):
             for col in range(COLS):
-                if self.game.board.squares[row][col].has_piece():
-                    piece = self.game.board.squares[row][col].piece
+                if board.squares[row][col].has_piece():
+                    piece = board.squares[row][col].piece
                     value = piece.value
                     material_score += value
-                    self.game.board.possible_moves(piece, row, col)
+                    board.possible_moves(piece, row, col)
                     # calculate control score
                     if row in center and col in center:
                         control_score += 1 if piece.color == 'black' else -1
@@ -47,14 +86,14 @@ class AI:
                     if piece.color == 'white':
                         if isinstance(piece, King):
                             # calculate safety score
-                            safety_score += self.game.board.attackers(piece)
+                            safety_score += board.attackers(piece)
                         elif isinstance(piece, Pawn):
                             white_pawn_files[col] += 1
                             # mobility score
                         mobility_score -= len(piece.moves)
                     else:
                         if isinstance(piece, King):
-                            safety_score -= self.game.board.attackers(piece)
+                            safety_score -= board.attackers(piece)
                         elif isinstance(piece, Pawn):
                             black_pawn_files[col] += 1
                         mobility_score += len(piece.moves)
@@ -85,4 +124,11 @@ class AI:
                     structure_score -= black_pawn_files[file]
 
         # need to determine weights for each factor
+        material_weight = 1.0
+        control_weight = 0.1
+        mobility_weight = 0.1
+        safety_weight = 0.2
+        structure_weight = 0.1
+
         # return scores * weights
+        return (material_score * material_weight + control_score * control_weight + mobility_score * mobility_weight + safety_score * safety_weight + structure_score * structure_weight)

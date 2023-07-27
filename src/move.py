@@ -5,6 +5,11 @@ class Move:
 		# initial and final are both Square objects
 		self.initial = initial
 		self.final = final
+		self.was_enpassant = False
+		self.was_castle = False
+		self.was_promotion = False
+		self.original_moved_status = False
+		self.captured_piece = None
 
 	def __str__(self):
 		s = ''
