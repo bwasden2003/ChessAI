@@ -6,58 +6,63 @@ from piece import *
 from square import Square
 import copy
 
+
 class AI:
 
-    def __init__(self, game):
+    def __init__(self, game, color):
         self.game = game
+        self.color = color
+        self.enemy_color = 'white' if color == 'black' else 'black'
+        self.transposition_table = {}
 
-    def alpha_beta_search(self, board, alpha, beta, depth, maximize):
-        if depth == 0: #or gameover
-            return None, self.evaluate(board)
-        print(f"depth = {depth}")
-        if maximize:
-            best_value = float('-inf')
-            best_move = None
-            for row in range(ROWS):
-                for col in range(COLS):
-                    if board.squares[row][col].has_piece():
-                        piece = board.squares[row][col].piece
-                        if piece.color == 'black':
-                            board.possible_moves(piece, row, col)
-                            for move in piece.moves:
-                                board.move(piece, move, testing=True)
-                                _, eval = self.alpha_beta_search(board, alpha, beta, depth - 1, False)
-                                board.undo_move(piece, move)
-                                if eval > best_value:
-                                    best_value = eval
-                                    best_move = move
-                                alpha = max(alpha, eval)
-                                if beta <= alpha:
-                                    return best_move, best_value
-            return best_move, best_value
+    def alpha_beta_search(self, board, depth):
+        best_score = float('-inf')
+        best_move = None
+
+        moves = board.moves_by_color(self.color)
+        Piece.sort_moves(moves)
+        for d in range(1, depth + 1):
+            for move in moves:
+                board.move(move.initial.piece, move, testing=True)
+                score = -self.minimax(board, d - 1,
+                                      float('-inf'), float('inf'), False)
+                board.undo_move(move.initial.piece, move)
+                if score > best_score:
+                    best_score = score
+                    best_move = move
+        return best_move
+
+    def minimax(self, board, depth, alpha, beta, maximizing_player):
+        key = board.hash()
+
+        if key in self.transposition_table and self.transposition_table[key][0] >= depth:
+            return self.transposition_table[key][1]
+
+        if depth == 0:  # or checkmate
+            return self.evaluate(board)
+
+        if maximizing_player:
+            value = float('-inf')
+            for move in board.moves_by_color(self.color):
+                board.move(move.initial.piece, move, testing=True)
+                value = max(value, self.minimax(
+                    board, depth - 1, alpha, beta, False))
+                board.undo_move(move.initial.piece, move)
+                alpha = max(alpha, value)
+                if alpha >= beta:
+                    break
         else:
-            worst_value = float('inf')
-            worst_move = None
-            for row in range(ROWS):
-                for col in range(COLS):
-                    if board.squares[row][col].has_piece():
-                        piece = board.squares[row][col].piece
-                        if piece.color == 'white':
-                            board.possible_moves(piece, row, col)
-                            for move in piece.moves:
-                                board.move(piece, move, testing=True)
-                                _, eval = self.alpha_beta_search(board, alpha, beta, depth - 1, True)
-                                board.undo_move(piece, move)
-                                if eval < worst_value:
-                                    worst_value = eval
-                                    worst_move = move
-                                beta = min(beta, eval)
-                                if beta <= alpha:
-                                    return worst_move, worst_value
-            return worst_move, worst_value
-
-
-
+            value = float('inf')
+            for move in board.moves_by_color(self.color):
+                board.move(move.initial.piece, move, testing=True)
+                value = min(value, self.minimax(
+                    board, depth - 1, alpha, beta, True))
+                board.undo_move(move.initial.piece, move)
+                beta = min(beta, value)
+                if beta <= alpha:
+                    break
+        self.transposition_table[key] = (depth, value)
+        return value
 
     def evaluate(self, board):
         # center squares = more control

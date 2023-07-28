@@ -27,6 +27,20 @@ class Piece:
     def clear_moves(self):
         self.moves = []
 
+    @staticmethod
+    def sort_moves(moves):
+        def move_key(move):
+            initial_square = move.initial
+            final_square = move.final
+
+            is_capture = int(final_square.piece is not None)
+            is_check = int(final_square.piece is not None and isinstance(
+                final_square.piece, King))
+            is_promotion = int(isinstance(
+                initial_square.piece, Pawn) and final_square.row in [0, 7])
+            return ((is_capture * 3 + is_check * 2 + is_promotion * 1), is_capture, is_check, is_promotion)
+        moves.sort(key=move_key, reverse=True)
+
 
 class Pawn(Piece):
 

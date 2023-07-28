@@ -8,6 +8,7 @@ from move import Move
 from ai import AI
 import copy
 
+
 class Main:
 
     def __init__(self):
@@ -15,7 +16,7 @@ class Main:
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption('Chess')
         self.game = Game()
-        self.ai = AI(self.game)
+        self.ai = AI(self.game, 'black')
 
     def mainloop(self):
 
@@ -33,11 +34,14 @@ class Main:
 
             if game.next_player == 'black':
                 temp_board = copy.deepcopy(board)
-                move, eval = self.ai.alpha_beta_search(temp_board, float('-inf'), float('inf'), 2, True)
+                move = self.ai.alpha_beta_search(
+                    temp_board, 2)
+
                 piece = board.squares[move.initial.row][move.initial.col].piece
                 board.possible_moves(piece, move.initial.row, move.initial.col)
                 if board.valid_move(piece, move):
-                    captured = board.squares[move.final.row][move.final.col].has_piece()
+                    captured = board.squares[move.final.row][move.final.col].has_piece(
+                    )
                     board.move(piece, move)
                     board.set_true_en_passant(piece)
                     # play sound
@@ -101,7 +105,7 @@ class Main:
                             new_col = dragger.mouseX // SQUARE_SIZE
 
                             initial = Square(dragger.initial_row,
-                                            dragger.initial_col)
+                                             dragger.initial_col)
                             final = Square(new_row, new_col)
                             move = Move(initial, final)
 
