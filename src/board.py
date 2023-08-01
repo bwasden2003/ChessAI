@@ -4,12 +4,13 @@ from piece import *
 from move import Move
 from sound import Sound
 import copy
+import numpy as np
 
 
 class Board:
 
     def __init__(self):
-        self.squares = [[0, 0, 0, 0, 0, 0, 0, 0] for col in range(COLS)]
+        self.squares = np.zeros((8, 8), dtype=object)
         self.last_move = None
         self.history = []
         self._create()
@@ -147,7 +148,7 @@ class Board:
         self.undo_move(piece, move)
         return False
 
-    def checkmate(self, color):
+    def is_checkmate(self, color):
         for row in range(ROWS):
             for col in range(COLS):
                 if self.squares[row][col].piece is not None and self.squares[row][col].piece.color != color:

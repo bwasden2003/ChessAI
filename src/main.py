@@ -7,6 +7,8 @@ from square import Square
 from move import Move
 from ai import AI
 import copy
+import threading
+import numpy as np
 
 
 class Main:
@@ -33,10 +35,13 @@ class Main:
             game.show_hover(screen)
 
             if game.next_player == 'black':
+                pygame.display.update()
                 temp_board = copy.deepcopy(board)
-                move = self.ai.alpha_beta_search(
-                    temp_board, 2)
+                ai_thread = self.ai.calculate_move(temp_board, 2)
+                while ai_thread.is_alive():
+                    pygame.time.wait(100)
 
+                move = self.ai.best_move
                 piece = board.squares[move.initial.row][move.initial.col].piece
                 board.possible_moves(piece, move.initial.row, move.initial.col)
                 if board.valid_move(piece, move):
@@ -49,10 +54,11 @@ class Main:
 
                     game.show_bg(screen)
                     game.show_pieces(screen)
-                    game.check_checkmate()
 
                     game.next_turn()
-                    continue
+                    if board.is_checkmate(game.next_player):
+                        print("---------CHECKMATE---------")
+                
             else:
                 if dragger.dragging:
                     dragger.update_blit(screen)
@@ -120,9 +126,11 @@ class Main:
 
                                 game.show_bg(screen)
                                 game.show_pieces(screen)
-                                game.check_checkmate()
+                                pygame.display.update()
 
                                 game.next_turn()
+                                if board.is_checkmate(game.next_player):
+                                    print("---------CHECKMATE---------")
 
                         dragger.undrag_piece()
 

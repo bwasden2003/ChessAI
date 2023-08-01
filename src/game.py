@@ -103,9 +103,6 @@ class Game:
     def next_turn(self):
         self.next_player = 'white' if self.next_player == 'black' else 'black'
 
-    def check_checkmate(self):
-        self.board.checkmate(self.next_player)
-
     def change_theme(self):
         self.config.change_theme()
 
