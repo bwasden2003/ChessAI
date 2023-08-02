@@ -80,32 +80,47 @@ class AI:
         self.color = color
         self.enemy_color = 'white' if color == 'black' else 'black'
         self.transposition_table = {}
+        self.best_score = 0
         self.best_move = None
+        self.move_history = []
+        self.material_score = 0
+        self.control_score = 0
+        self.mobility_score = 0
+        self.safety_score = 0
+        self.low_score = float('inf')
+        self.response_move = None
         
     def calculate_move(self, board, depth):
+        self.move_history = []
         ai_thread = threading.Thread(target=self.alpha_beta_search, args=(board, depth))
         ai_thread.start()
         return ai_thread
             
 
     def alpha_beta_search(self, board, depth):
-        best_score = float('-inf')
+        self.best_score = float('-inf')
         best_move = None
 
         moves = board.moves_by_color(self.color)
         Piece.sort_moves(moves)
-        for d in range(1, depth + 1):
-            for move in moves:
-                board.move(move.initial.piece, move, testing=True)
-                score = self.minimax(board, d - 1,
-                                      float('-inf'), float('inf'), False)
-                board.undo_move(move.initial.piece, move)
-                if score > best_score:
-                    best_score = score
-                    best_move = move
-                    print(f"Start: {best_move.initial.row}, {best_move.initial.col}. End: {best_move.final.row}, {best_move.final.col}. Score: {best_score}")
+        for move in moves:
+            board.move(move.initial.piece, move, testing=True)
+            score = self.minimax(board, depth - 1,
+                                    float('-inf'), float('inf'), False)
+            self.move_history.append((move, score))
+            board.undo_move(move.initial.piece, move)
+            if score > self.best_score:
+                self.best_score = score
+                best_move = move
+                # for move, value in self.move_history:
+                #     print(f"VALUE: {value}")
+                #     print(f"Move: {move.initial.row}, {move.initial.col} -> {move.final.row}, {move.final.col}")
+                # print("______________________________________________________________________")
         self.best_move = best_move
-        return
+        # print(f"Start: {best_move.initial.row}, {best_move.initial.col}. End: {best_move.final.row}, {best_move.final.col}. Score: {self.best_score}")
+        # print(f"Response Move Start: {self.response_move.initial.row}, {self.response_move.initial.col}, Response Move End: {self.response_move.final.row}, {self.response_move.final.col}")
+        # print(f"Material Score: {self.material_score}, Control Score: {self.control_score}, Mobility Score: {self.mobility_score}, Safety Score: {self.safety_score}")
+        return  
 
     def minimax(self, board, depth, alpha, beta, maximizing_player):
         key = board.hash()
@@ -137,7 +152,15 @@ class AI:
                 value = min(value, self.minimax(
                     board, depth - 1, alpha, beta, True))
                 board.undo_move(move.initial.piece, move)
-                beta = min(beta, value)
+                self.move_history.append((move, value))
+                beta = min(value, beta)
+                    # if value < self.low_score:
+                    #     self.low_score = value
+                    #     self.response_move = move
+                    #     print(f"MIN VALUE: {value}")
+                    #     for i, move in enumerate(self.move_history):
+                    #         print(f"Move {i + 1}: {move.initial.row}, {move.initial.col} -> {move.final.row}, {move.final.col}")
+                    #     print("_______________________________________")
                 if beta <= alpha:
                     break
         self.transposition_table[key] = (depth, value)
@@ -160,13 +183,9 @@ class AI:
         return black - white
     
     def evaluate(self, board):
-        # center squares = more control
         material_score = 0
         mobility_score = 0
         safety_score = 0
-
-        white_pawn_files = [0] * 8
-        black_pawn_files = [0] * 8
         
         pawns = self.get_piece_position_score(board, Pawn, AI.BLACK_PAWN_TABLE, second_table=AI.WHITE_PAWN_TABLE)
         knights = self.get_piece_position_score(board, Knight, AI.KNIGHT_TABLE)
@@ -196,12 +215,19 @@ class AI:
                         mobility_score += len(piece.moves)
 
         # need to determine weights for each factor
-        material_weight = 1
+        material_weight = 2
         control_weight = 0.2
-        mobility_weight = 0.2
+        mobility_weight = 0.02
         safety_weight = 1
-        print(f"MATERIAL SCORE: {material_score}, CONTROL_SCORE: {control_score}")
+
+        total_score = (material_score * material_weight + control_score * control_weight)
+        # + mobility_score * mobility_weight + safety_score * safety_weight
+        if total_score > self.best_score:
+            self.material_score = material_score * material_weight
+            self.control_score = control_score * control_weight
+            # self.mobility_score = mobility_score * mobility_weight
+            # self.safety_score = safety_score * safety_weight
 
         # return scores * weights
-        return (material_score * material_weight + control_score * control_weight + mobility_score * mobility_weight + safety_score * safety_weight)
+        return total_score
     
