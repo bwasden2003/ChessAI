@@ -5,6 +5,7 @@ from board import Board
 from dragger import Dragger
 from config import Config
 from square import Square
+import math
 
 
 class Game:
@@ -89,6 +90,24 @@ class Game:
                 rect = (pos.col * SQUARE_SIZE, pos.row *
                         SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE)
                 pygame.draw.rect(surface, color, rect)
+
+    def show_ai_best_move(self, surface, move):
+        offset = SQUARE_SIZE // 2
+        start_pos = (move.initial.col * SQUARE_SIZE + offset, move.initial.row * SQUARE_SIZE + offset)
+        end_pos = (move.final.col * SQUARE_SIZE + offset, move.final.row * SQUARE_SIZE + offset)
+        color = (0, 0, 0)
+        def draw_arrow(surface, color, start_pos, end_pos, width=5):
+            pygame.draw.line(surface, color, start_pos, end_pos, width)
+            angle = math.atan2(start_pos[1]-end_pos[1], end_pos[0]-start_pos[0])
+            px1 = end_pos[0] + width*math.sin(angle)
+            py1 = end_pos[1] + width*math.cos(angle)
+            pygame.draw.line(surface, color, end_pos, (px1, py1), width)
+
+            px2 = end_pos[0] - width*math.sin(angle)
+            py2 = end_pos[1] - width*math.cos(angle)
+            pygame.draw.line(surface, color, end_pos, (px2, py2), width)
+        
+        draw_arrow(surface, color, start_pos, end_pos)
 
     def show_hover(self, surface):
         if self.hovered_square:

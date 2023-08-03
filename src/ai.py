@@ -111,17 +111,17 @@ class AI:
             board.undo_move(move.initial.piece, move)
             if score > self.best_score:
                 self.best_score = score
-                best_move = move
+                self.best_move = move
                 # for move, value in self.move_history:
                 #     print(f"VALUE: {value}")
                 #     print(f"Move: {move.initial.row}, {move.initial.col} -> {move.final.row}, {move.final.col}")
                 # print("______________________________________________________________________")
-        self.best_move = best_move
         # print(f"Start: {best_move.initial.row}, {best_move.initial.col}. End: {best_move.final.row}, {best_move.final.col}. Score: {self.best_score}")
         # print(f"Response Move Start: {self.response_move.initial.row}, {self.response_move.initial.col}, Response Move End: {self.response_move.final.row}, {self.response_move.final.col}")
         # print(f"Material Score: {self.material_score}, Control Score: {self.control_score}, Mobility Score: {self.mobility_score}, Safety Score: {self.safety_score}")
         return  
-
+    def show_best_move(self, surface):
+        self.game.show_ai_best_move(surface, self.best_move)
     def minimax(self, board, depth, alpha, beta, maximizing_player):
         key = board.hash()
 

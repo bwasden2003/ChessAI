@@ -10,7 +10,6 @@ import copy
 import threading
 import numpy as np
 
-
 class Main:
 
     def __init__(self):
@@ -39,9 +38,18 @@ class Main:
                 temp_board = copy.deepcopy(board)
                 ai_thread = self.ai.calculate_move(temp_board, 2)
                 while ai_thread.is_alive():
-                    pygame.time.wait(100)
+                    if self.ai.best_move is not None:
+                        game.show_bg(screen)
+                        game.show_last_move(screen)
+                        game.show_moves(screen)
+                        game.show_pieces(screen)
+                        game.show_hover(screen)
+                        self.ai.show_best_move(screen)
+                        pygame.display.update()
+                    pygame.time.wait(25)
 
                 move = self.ai.best_move
+                self.ai.best_move = None
                 piece = board.squares[move.initial.row][move.initial.col].piece
                 board.possible_moves(piece, move.initial.row, move.initial.col)
                 if board.valid_move(piece, move):
@@ -58,7 +66,7 @@ class Main:
                     game.next_turn()
                     if board.is_checkmate(game.next_player):
                         print("---------CHECKMATE---------")
-                
+
             else:
                 if dragger.dragging:
                     dragger.update_blit(screen)
