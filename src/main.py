@@ -66,7 +66,6 @@ class Main:
                     game.next_turn()
                     if board.is_checkmate(game.next_player):
                         print("---------CHECKMATE---------")
-
             else:
                 if dragger.dragging:
                     dragger.update_blit(screen)
@@ -119,7 +118,7 @@ class Main:
                             new_col = dragger.mouseX // SQUARE_SIZE
 
                             initial = Square(dragger.initial_row,
-                                             dragger.initial_col)
+                                                dragger.initial_col)
                             final = Square(new_row, new_col)
                             move = Move(initial, final)
 

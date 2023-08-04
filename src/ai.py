@@ -74,6 +74,17 @@ class AI:
         [1, 2, 3, 3, 3, 1, 1, 1],
         [1, 1, 1, 3, 1, 1, 1, 1]
     ])
+
+    KING_TABLE = np.array([
+        [0, 0, 1, 0, 1, 0, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 2, 3, 3, 3, 1, 1, 1],
+        [1, 1, 1, 3, 1, 1, 1, 1]
+    ])
     
     def __init__(self, game, color):
         self.game = game
@@ -83,10 +94,6 @@ class AI:
         self.best_score = 0
         self.best_move = None
         self.move_history = []
-        self.material_score = 0
-        self.control_score = 0
-        self.mobility_score = 0
-        self.safety_score = 0
         self.low_score = float('inf')
         self.response_move = None
         
@@ -112,13 +119,7 @@ class AI:
             if score > self.best_score:
                 self.best_score = score
                 self.best_move = move
-                # for move, value in self.move_history:
-                #     print(f"VALUE: {value}")
-                #     print(f"Move: {move.initial.row}, {move.initial.col} -> {move.final.row}, {move.final.col}")
-                # print("______________________________________________________________________")
-        # print(f"Start: {best_move.initial.row}, {best_move.initial.col}. End: {best_move.final.row}, {best_move.final.col}. Score: {self.best_score}")
-        # print(f"Response Move Start: {self.response_move.initial.row}, {self.response_move.initial.col}, Response Move End: {self.response_move.final.row}, {self.response_move.final.col}")
-        # print(f"Material Score: {self.material_score}, Control Score: {self.control_score}, Mobility Score: {self.mobility_score}, Safety Score: {self.safety_score}")
+
         return  
     def show_best_move(self, surface):
         self.game.show_ai_best_move(surface, self.best_move)
@@ -217,16 +218,8 @@ class AI:
         # need to determine weights for each factor
         material_weight = 2
         control_weight = 0.2
-        mobility_weight = 0.02
-        safety_weight = 1
 
         total_score = (material_score * material_weight + control_score * control_weight)
-        # + mobility_score * mobility_weight + safety_score * safety_weight
-        if total_score > self.best_score:
-            self.material_score = material_score * material_weight
-            self.control_score = control_score * control_weight
-            # self.mobility_score = mobility_score * mobility_weight
-            # self.safety_score = safety_score * safety_weight
 
         # return scores * weights
         return total_score

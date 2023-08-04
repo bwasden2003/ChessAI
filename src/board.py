@@ -12,7 +12,6 @@ class Board:
     def __init__(self):
         self.squares = np.zeros((8, 8), dtype=object)
         self.last_move = None
-        self.history = []
         self._create()
         self._add_pieces('white')
         self._add_pieces('black')
@@ -48,25 +47,23 @@ class Board:
         if isinstance(piece, King):
             if self.castling(initial, final) and not testing:
                 move.was_castle = True
-                if move.final.col > move.initial.col:  # King-side castle
-                    rook = self.squares[move.initial.row][move.initial.col + 3].piece
-                    self.squares[move.initial.row][move.initial.col +
+                if final.col > initial.col:  # King-side castle
+                    rook = self.squares[initial.row][initial.col + 3].piece
+                    self.squares[initial.row][initial.col +
                                                    3].piece = None
                 else:  # Queen-side castle
-                    rook = self.squares[move.initial.row][move.initial.col - 4].piece
-                    self.squares[move.initial.row][move.initial.col -
+                    rook = self.squares[initial.row][initial.col - 4].piece
+                    self.squares[initial.row][initial.col -
                                                    4].piece = None
 
                 # Move the rook to the other side of the king
-                self.squares[move.final.row][move.final.col - 1 if rook ==
-                                             piece.left_rook else move.final.col + 1].piece = rook
+                self.squares[final.row][final.col - 1 if final.col > initial.col else final.col + 1].piece = rook
 
         # marked as moved
         move.original_move_status = piece.moved
         piece.moved = True
 
         # update last move
-        self.history.append((piece, move))
         self.last_move = move
 
     def undo_move(self, piece, move):
@@ -86,16 +83,15 @@ class Board:
         if move.was_promotion and (final.row == 0 or final.row == 7):
             self.squares[initial.row][initial.col].piece = Pawn(piece.color)
 
-        if move.was_castle and abs(move.initial.col - move.final.col) == 2:
-            if move.final.col > move.initial.col:  # King-side castle
-                rook = self.squares[move.final.row][move.final.col + 1].piece
-                self.squares[move.final.row][move.final.col + 1].piece = None
+        if move.was_castle and abs(initial.col - final.col) == 2:
+            if final.col > initial.col:  # King-side castle
+                rook = self.squares[final.row][final.col - 1].piece
+                self.squares[final.row][final.col - 1].piece = None
             else:  # Queen-side castle
-                rook = self.squares[move.final.row][move.final.col - 2].piece
-                self.squares[move.final.row][move.final.col - 2].piece = None
+                rook = self.squares[final.row][final.col + 1].piece
+                self.squares[final.row][final.col + 1].piece = None
 
-            self.squares[move.final.row][move.initial.col - 1 if rook ==
-                                         piece.left_rook else move.initial.col + 1].piece = rook
+            self.squares[initial.row][initial.col + 3 if final.col > initial.col else initial.col - 4].piece = rook
             rook.moved = False
 
         piece.moved = move.original_move_status
