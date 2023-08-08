@@ -6,6 +6,7 @@ from piece import *
 from square import Square
 import threading
 import numpy as np
+import pickle
 
 
 class AI:
@@ -76,26 +77,27 @@ class AI:
     ])
 
     KING_TABLE = np.array([
-        [0, 0, 1, 0, 1, 0, 1, 0],
+        [0, 0, 4, 0, 4, 0, 4, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 2, 3, 3, 3, 1, 1, 1],
-        [1, 1, 1, 3, 1, 1, 1, 1]
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 4, 0, 4, 0, 4, 0]
     ])
     
     def __init__(self, game, color):
         self.game = game
         self.color = color
         self.enemy_color = 'white' if color == 'black' else 'black'
-        self.transposition_table = {}
         self.best_score = 0
         self.best_move = None
         self.move_history = []
         self.low_score = float('inf')
         self.response_move = None
+        self.filename="transposition_table.pkl"	
+        self.transposition_table = self.load_transposition_table()
         
     def calculate_move(self, board, depth):
         self.move_history = []
@@ -193,8 +195,9 @@ class AI:
         bishops = self.get_piece_position_score(board, Bishop, AI.BISHOP_TABLE)
         rooks = self.get_piece_position_score(board, Rook, AI.ROOK_TABLE)
         queens = self.get_piece_position_score(board, Queen, AI.QUEEN_TABLE)
+        kings = self.get_piece_position_score(board, King, AI.KING_TABLE)
         
-        control_score = pawns + knights + bishops + rooks + queens
+        control_score = pawns + knights + bishops + rooks + queens + kings
 
         # incorporate way to get piece scores for white and black
         for row in range(ROWS):
@@ -224,3 +227,13 @@ class AI:
         # return scores * weights
         return total_score
     
+    def save_transposition_table(self):	
+        with open(self.filename, 'wb') as file:	
+            pickle.dump(self.transposition_table, file)	
+    def load_transposition_table(self):	
+        try:	
+            with open(self.filename, 'rb') as file:	
+                table = pickle.load(file)	
+                return table	
+        except FileNotFoundError:	
+            return {}

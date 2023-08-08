@@ -145,15 +145,9 @@ class Board:
         return False
 
     def is_checkmate(self, color):
-        for row in range(ROWS):
-            for col in range(COLS):
-                if self.squares[row][col].piece is not None and self.squares[row][col].piece.color != color:
-                    self.possible_moves(self.squares[row][col].piece, row, col)
-                    if len(self.squares[row][col].piece.moves) > 0:
-                        self.squares[row][col].piece.clear_moves()
-                        return False
-                    else:
-                        self.squares[row][col].piece.clear_moves()
+        for move in self.moves_by_color(color):
+            if not self.in_check(move.initial.piece, move):
+                return False
         return True
 
     # returns number of pieces that are attacking piece

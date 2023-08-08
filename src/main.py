@@ -25,8 +25,9 @@ class Main:
         game = self.game
         board = self.game.board
         dragger = self.game.dragger
+        done = False
 
-        while True:
+        while not done:
             game.show_bg(screen)
             game.show_last_move(screen)
             game.show_moves(screen)
@@ -65,7 +66,14 @@ class Main:
 
                     game.next_turn()
                     if board.is_checkmate(game.next_player):
-                        print("---------CHECKMATE---------")
+                        font = pygame.font.SysFont('calibri', 75, True, False)
+                        text = font.render("Checkmate!", True, (255, 0, 0))
+                        text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+                        screen.blit(text, text_rect.topleft)
+                        pygame.display.flip()
+                        pygame.time.wait(5000)
+                        done = True
+
             else:
                 if dragger.dragging:
                     dragger.update_blit(screen)
@@ -118,7 +126,7 @@ class Main:
                             new_col = dragger.mouseX // SQUARE_SIZE
 
                             initial = Square(dragger.initial_row,
-                                                dragger.initial_col)
+                                             dragger.initial_col)
                             final = Square(new_row, new_col)
                             move = Move(initial, final)
 
@@ -137,7 +145,13 @@ class Main:
 
                                 game.next_turn()
                                 if board.is_checkmate(game.next_player):
-                                    print("---------CHECKMATE---------")
+                                    font = pygame.font.SysFont('calibri', 75, True, False)
+                                    text = font.render("Checkmate!", True, (255, 0, 0))
+                                    text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+                                    screen.blit(text, text_rect.topleft)
+                                    pygame.display.flip()
+                                    pygame.time.wait(5000)
+                                    done = True
 
                         dragger.undrag_piece()
 
@@ -154,6 +168,7 @@ class Main:
 
                     # quit app
                     elif event.type == pygame.QUIT:
+                        self.ai.save_transposition_table()
                         pygame.quit()
                         sys.exit()
 
